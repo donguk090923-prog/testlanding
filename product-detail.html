@@ -344,7 +344,7 @@
                             <p class="text-sm text-gray-500 mt-1">128개 리뷰</p>
                         </div>
                     </div>
-                    <button class="px-6 py-3 bg-primary text-white font-medium rounded-lg hover:bg-opacity-90 transition-all">
+                    <button onclick="openReviewModal()" class="px-6 py-3 bg-primary text-white font-medium rounded-lg hover:bg-opacity-90 transition-all">
                         리뷰 작성
                     </button>
                 </div>
@@ -435,6 +435,85 @@
     </div>
 </footer>
 
+<!-- Review Modal -->
+<div id="review-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 backdrop-blur-sm">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 p-8">
+        <div class="flex items-center justify-between mb-6">
+            <h3 class="text-xl font-bold">리뷰 작성</h3>
+            <button onclick="closeReviewModal()" class="text-gray-400 hover:text-gray-600">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+        </div>
+        <form id="review-form">
+            <!-- Star Rating -->
+            <div class="mb-6">
+                <label class="block text-sm font-medium mb-2">별점</label>
+                <div class="flex gap-1" id="star-rating">
+                    <button type="button" class="star-btn text-gray-300 hover:text-yellow-400" data-rating="1">
+                        <span class="material-symbols-outlined text-3xl" style="font-variation-settings: 'FILL' 1;">star</span>
+                    </button>
+                    <button type="button" class="star-btn text-gray-300 hover:text-yellow-400" data-rating="2">
+                        <span class="material-symbols-outlined text-3xl" style="font-variation-settings: 'FILL' 1;">star</span>
+                    </button>
+                    <button type="button" class="star-btn text-gray-300 hover:text-yellow-400" data-rating="3">
+                        <span class="material-symbols-outlined text-3xl" style="font-variation-settings: 'FILL' 1;">star</span>
+                    </button>
+                    <button type="button" class="star-btn text-gray-300 hover:text-yellow-400" data-rating="4">
+                        <span class="material-symbols-outlined text-3xl" style="font-variation-settings: 'FILL' 1;">star</span>
+                    </button>
+                    <button type="button" class="star-btn text-gray-300 hover:text-yellow-400" data-rating="5">
+                        <span class="material-symbols-outlined text-3xl" style="font-variation-settings: 'FILL' 1;">star</span>
+                    </button>
+                </div>
+                <input type="hidden" id="review-rating" value="0">
+            </div>
+            <!-- Review Content -->
+            <div class="mb-6">
+                <label class="block text-sm font-medium mb-2">리뷰 내용</label>
+                <textarea id="review-content" rows="4" class="w-full rounded-lg border border-gray-200 px-4 py-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20" placeholder="상품에 대한 솔직한 리뷰를 작성해주세요."></textarea>
+            </div>
+            <!-- Image Upload -->
+            <div class="mb-6">
+                <label class="block text-sm font-medium mb-2">사진 첨부 (선택)</label>
+                <div class="border-2 border-dashed border-gray-200 rounded-lg p-4 text-center hover:border-primary transition-colors">
+                    <input type="file" id="review-image" accept="image/*" class="hidden" onchange="previewReviewImage(this)">
+                    <div id="image-upload-area" onclick="document.getElementById('review-image').click()" class="cursor-pointer">
+                        <span class="material-symbols-outlined text-4xl text-gray-400">add_photo_alternate</span>
+                        <p class="text-sm text-gray-500 mt-2">클릭하여 이미지 선택</p>
+                        <p class="text-xs text-gray-400 mt-1">JPG, PNG (최대 5MB)</p>
+                    </div>
+                    <div id="image-preview-area" class="hidden">
+                        <img id="review-image-preview" class="max-h-32 mx-auto rounded-lg">
+                        <button type="button" onclick="removeReviewImage()" class="mt-2 text-sm text-red-500 hover:text-red-700">
+                            <span class="material-symbols-outlined text-sm align-middle">delete</span> 삭제
+                        </button>
+                    </div>
+                </div>
+                <div id="upload-progress" class="hidden mt-2">
+                    <div class="w-full bg-gray-200 rounded-full h-2">
+                        <div id="progress-bar" class="bg-primary h-2 rounded-full transition-all" style="width: 0%"></div>
+                    </div>
+                    <p id="progress-text" class="text-xs text-gray-500 mt-1 text-center">업로드 중...</p>
+                </div>
+            </div>
+            <button type="submit" id="review-submit-btn" class="w-full py-3 bg-primary text-white font-bold rounded-lg hover:bg-opacity-90 transition-all">
+                리뷰 등록
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- Configuration -->
+<script src="config.js"></script>
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-analytics-compat.js"></script>
+<!-- Firebase Config -->
+<script src="firebase-config.js"></script>
+
 <script>
 const images = [
     'https://images.unsplash.com/photo-1506452305024-9d3f02d1c9b5?w=800&h=800&fit=crop',
@@ -471,6 +550,233 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
         document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
         document.getElementById('tab-' + this.dataset.tab).classList.remove('hidden');
     });
+});
+
+// Review Modal
+let selectedRating = 0;
+
+function openReviewModal() {
+    if (!currentUser) {
+        alert('리뷰를 작성하려면 로그인이 필요합니다.');
+        return;
+    }
+    document.getElementById('review-modal').classList.remove('hidden');
+    document.getElementById('review-modal').classList.add('flex');
+}
+
+function closeReviewModal() {
+    document.getElementById('review-modal').classList.add('hidden');
+    document.getElementById('review-modal').classList.remove('flex');
+    selectedRating = 0;
+    updateStars(0);
+    document.getElementById('review-content').value = '';
+    removeReviewImage();
+}
+
+// 리뷰 이미지 미리보기
+let reviewImageFile = null;
+
+function previewReviewImage(input) {
+    const file = input.files[0];
+    if (!file) return;
+
+    // 파일 크기 체크 (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+        alert('이미지 크기는 5MB 이하로 선택해주세요.');
+        input.value = '';
+        return;
+    }
+
+    // 이미지 타입 체크
+    if (!file.type.startsWith('image/')) {
+        alert('이미지 파일만 업로드 가능합니다.');
+        input.value = '';
+        return;
+    }
+
+    reviewImageFile = file;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        document.getElementById('review-image-preview').src = e.target.result;
+        document.getElementById('image-upload-area').classList.add('hidden');
+        document.getElementById('image-preview-area').classList.remove('hidden');
+    };
+    reader.readAsDataURL(file);
+}
+
+function removeReviewImage() {
+    reviewImageFile = null;
+    document.getElementById('review-image').value = '';
+    document.getElementById('review-image-preview').src = '';
+    document.getElementById('image-upload-area').classList.remove('hidden');
+    document.getElementById('image-preview-area').classList.add('hidden');
+    document.getElementById('upload-progress').classList.add('hidden');
+}
+
+// 이미지 업로드 함수
+async function uploadReviewImage(file, reviewId) {
+    const storage = firebase.storage();
+    const storageRef = storage.ref();
+    const fileName = reviewId + '_' + Date.now() + '_' + file.name;
+    const imageRef = storageRef.child('review-images/' + fileName);
+
+    // 업로드 진행률 표시
+    const progressDiv = document.getElementById('upload-progress');
+    const progressBar = document.getElementById('progress-bar');
+    const progressText = document.getElementById('progress-text');
+    progressDiv.classList.remove('hidden');
+
+    return new Promise((resolve, reject) => {
+        const uploadTask = imageRef.put(file);
+
+        uploadTask.on('state_changed',
+            (snapshot) => {
+                const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                progressBar.style.width = progress + '%';
+                progressText.textContent = '업로드 중... ' + Math.round(progress) + '%';
+            },
+            (error) => {
+                console.error('이미지 업로드 실패:', error);
+                progressDiv.classList.add('hidden');
+                reject(error);
+            },
+            async () => {
+                const downloadURL = await uploadTask.snapshot.ref.getDownloadURL();
+                progressText.textContent = '업로드 완료!';
+                resolve(downloadURL);
+            }
+        );
+    });
+}
+
+function updateStars(rating) {
+    document.querySelectorAll('.star-btn').forEach((btn, index) => {
+        if (index < rating) {
+            btn.classList.remove('text-gray-300');
+            btn.classList.add('text-yellow-400');
+        } else {
+            btn.classList.add('text-gray-300');
+            btn.classList.remove('text-yellow-400');
+        }
+    });
+    document.getElementById('review-rating').value = rating;
+}
+
+// Star rating click events
+document.querySelectorAll('.star-btn').forEach(btn => {
+    btn.addEventListener('click', function(e) {
+        e.preventDefault();
+        selectedRating = parseInt(this.dataset.rating);
+        updateStars(selectedRating);
+    });
+});
+
+// Review form submit
+document.getElementById('review-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    const rating = parseInt(document.getElementById('review-rating').value);
+    const content = document.getElementById('review-content').value.trim();
+    const submitBtn = document.getElementById('review-submit-btn');
+
+    if (rating === 0) {
+        alert('별점을 선택해주세요.');
+        return;
+    }
+    if (content.length < 10) {
+        alert('리뷰 내용을 10자 이상 입력해주세요.');
+        return;
+    }
+
+    try {
+        submitBtn.disabled = true;
+        submitBtn.textContent = '등록 중...';
+
+        const reviewId = 'REV_' + Date.now();
+        const userName = currentUser.displayName || currentUser.email.split('@')[0];
+
+        // 이미지 업로드 (있는 경우)
+        let imageUrl = null;
+        if (reviewImageFile) {
+            try {
+                imageUrl = await uploadReviewImage(reviewImageFile, reviewId);
+            } catch (uploadError) {
+                console.error('이미지 업로드 실패:', uploadError);
+                alert('이미지 업로드에 실패했습니다. 리뷰는 이미지 없이 등록됩니다.');
+            }
+        }
+
+        await db.collection('reviews').doc(reviewId).set({
+            reviewId: reviewId,
+            productId: 'product_1',
+            userId: currentUser.uid,
+            userName: userName.charAt(0) + '**',
+            rating: rating,
+            content: content,
+            imageUrl: imageUrl,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        alert('리뷰가 등록되었습니다. 감사합니다!');
+        closeReviewModal();
+        loadReviews();
+    } catch (error) {
+        console.error('리뷰 등록 실패:', error);
+        alert('리뷰 등록에 실패했습니다.');
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = '리뷰 등록';
+    }
+});
+
+// Load reviews from Firestore
+async function loadReviews() {
+    try {
+        const snapshot = await db.collection('reviews')
+            .where('productId', '==', 'product_1')
+            .orderBy('createdAt', 'desc')
+            .limit(10)
+            .get();
+
+        const reviewContainer = document.querySelector('#tab-review .divide-y');
+        if (!reviewContainer) return;
+
+        let reviewsHtml = '';
+        snapshot.forEach(doc => {
+            const review = doc.data();
+            const date = review.createdAt ? review.createdAt.toDate().toLocaleDateString('ko-KR') : '-';
+            const stars = '★'.repeat(review.rating) + '☆'.repeat(5 - review.rating);
+
+            const imageHtml = review.imageUrl ?
+                `<img src="${review.imageUrl}" class="mt-3 max-h-48 rounded-lg cursor-pointer hover:opacity-90" onclick="window.open('${review.imageUrl}', '_blank')">` : '';
+
+            reviewsHtml += `
+                <div class="py-6">
+                    <div class="flex items-start justify-between mb-3">
+                        <div>
+                            <div class="flex text-yellow-400 mb-1 text-sm">${stars}</div>
+                            <p class="font-medium">${review.userName}</p>
+                        </div>
+                        <span class="text-xs text-gray-400">${date}</span>
+                    </div>
+                    <p class="text-gray-600 text-sm">${review.content}</p>
+                    ${imageHtml}
+                </div>
+            `;
+        });
+
+        if (reviewsHtml) {
+            reviewContainer.innerHTML = reviewsHtml;
+        }
+    } catch (error) {
+        console.error('리뷰 로드 실패:', error);
+    }
+}
+
+// Initialize
+document.addEventListener('DOMContentLoaded', function() {
+    // Load reviews when page loads
+    setTimeout(loadReviews, 1000);
 });
 </script>
 </body>

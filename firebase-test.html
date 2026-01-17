@@ -81,6 +81,23 @@
                     주문 생성 테스트
                 </button>
             </div>
+
+            <!-- 이미지 업로드 테스트 -->
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <h3 class="text-lg font-bold mb-4">7. 이미지 업로드 테스트</h3>
+                <input type="file" id="image-file" accept="image/*" class="w-full mb-4 p-2 border rounded-lg"/>
+                <div id="image-preview" class="mb-4 hidden">
+                    <img id="preview-img" class="max-w-full h-40 object-cover rounded-lg"/>
+                </div>
+                <button onclick="testImageUpload()" class="w-full py-3 bg-pink-500 text-white rounded-lg font-bold hover:bg-pink-600">
+                    이미지 업로드 테스트
+                </button>
+                <div id="upload-result" class="mt-4 hidden">
+                    <p class="text-sm text-gray-600 mb-2">업로드된 이미지 URL:</p>
+                    <input type="text" id="uploaded-url" readonly class="w-full p-2 border rounded-lg text-xs bg-gray-50"/>
+                    <img id="uploaded-img" class="mt-2 max-w-full h-32 object-cover rounded-lg"/>
+                </div>
+            </div>
         </div>
 
         <!-- 데이터 조회 -->
@@ -109,6 +126,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-analytics-compat.js"></script>
     <script src="firebase-config.js"></script>
 
@@ -265,6 +283,73 @@
                 log('견적 요청 ' + quotes.length + '개 조회됨', 'success');
             } catch (error) {
                 log('견적 요청 조회 실패: ' + error.message, 'error');
+            }
+        }
+
+        // 7. 이미지 업로드 테스트
+        document.getElementById('image-file').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('preview-img').src = e.target.result;
+                    document.getElementById('image-preview').classList.remove('hidden');
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        async function testImageUpload() {
+            const fileInput = document.getElementById('image-file');
+            const file = fileInput.files[0];
+
+            if (!file) {
+                log('이미지 파일을 선택해주세요.', 'error');
+                return;
+            }
+
+            log('이미지 업로드 시작: ' + file.name, 'info');
+
+            try {
+                // Firebase Storage 초기화
+                const storage = firebase.storage();
+                const storageRef = storage.ref();
+
+                // 파일명 생성 (타임스탬프 + 원본 파일명)
+                const fileName = Date.now() + '_' + file.name;
+                const imageRef = storageRef.child('test-images/' + fileName);
+
+                log('업로드 중...', 'info');
+
+                // 파일 업로드
+                const snapshot = await imageRef.put(file);
+                log('업로드 완료! 바이트: ' + snapshot.bytesTransferred, 'success');
+
+                // 다운로드 URL 가져오기
+                const downloadURL = await snapshot.ref.getDownloadURL();
+                log('다운로드 URL 생성 완료!', 'success');
+
+                // 결과 표시
+                document.getElementById('uploaded-url').value = downloadURL;
+                document.getElementById('uploaded-img').src = downloadURL;
+                document.getElementById('upload-result').classList.remove('hidden');
+
+                // Firestore에 이미지 정보 저장
+                await db.collection('uploaded_images').add({
+                    fileName: fileName,
+                    originalName: file.name,
+                    url: downloadURL,
+                    size: file.size,
+                    type: file.type,
+                    uploadedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    uploadedBy: currentUser ? currentUser.uid : 'anonymous'
+                });
+
+                log('이미지 정보가 Firestore에 저장되었습니다!', 'success');
+
+            } catch (error) {
+                log('이미지 업로드 오류: ' + error.message, 'error');
+                console.error(error);
             }
         }
 

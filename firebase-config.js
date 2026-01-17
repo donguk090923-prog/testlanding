@@ -19,6 +19,7 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 const analytics = firebase.analytics();
+const storage = typeof firebase.storage === 'function' ? firebase.storage() : null;
 
 // 인증 상태 관리
 let currentUser = null;
@@ -34,43 +35,34 @@ auth.onAuthStateChanged((user) => {
 function updateAuthUI(user) {
     const loginBtn = document.getElementById('login-btn');
     const signupBtn = document.getElementById('signup-btn');
+    const mypageBtn = document.getElementById('mypage-btn');
 
     if (user) {
         // 로그인 상태
         if (loginBtn) {
             const userName = user.displayName || user.email.split('@')[0];
-            loginBtn.textContent = userName;
-            loginBtn.href = 'mypage.html';
+            loginBtn.textContent = userName + '님';
             loginBtn.setAttribute('data-logged-in', 'true');
-            // 클릭 이벤트 재설정 - 마이페이지로 이동
-            loginBtn.onclick = (e) => {
-                e.preventDefault();
-                window.location.href = 'mypage.html';
-            };
+        }
+        if (mypageBtn) {
+            mypageBtn.classList.remove('hidden');
         }
         if (signupBtn) {
             signupBtn.textContent = '로그아웃';
             signupBtn.setAttribute('data-logged-in', 'true');
-            signupBtn.onclick = (e) => {
-                e.preventDefault();
-                auth.signOut().then(() => {
-                    alert('로그아웃 되었습니다.');
-                    window.location.reload();
-                });
-            };
         }
     } else {
         // 로그아웃 상태 - 기본 상태로 복원
         if (loginBtn) {
             loginBtn.textContent = '로그인';
-            loginBtn.href = '#';
             loginBtn.removeAttribute('data-logged-in');
-            loginBtn.onclick = null;
+        }
+        if (mypageBtn) {
+            mypageBtn.classList.add('hidden');
         }
         if (signupBtn) {
             signupBtn.textContent = '회원가입';
             signupBtn.removeAttribute('data-logged-in');
-            signupBtn.onclick = null;
         }
     }
 }
@@ -337,7 +329,7 @@ async function initializeProducts() {
             originalPrice: 1500000,
             description: '단열 + 방음 + 보안',
             badge: 'BEST',
-            image: 'https://i.postimg.cc/MHxJhG8x/door1.jpg',
+            image: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&h=450&fit=crop',
             order: 1
         },
         {
@@ -348,7 +340,7 @@ async function initializeProducts() {
             originalPrice: 1000000,
             description: '슬라이딩 시스템',
             badge: '',
-            image: 'https://i.postimg.cc/7Zy8nqJF/door2.jpg',
+            image: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=600&h=450&fit=crop',
             order: 2
         },
         {
@@ -359,7 +351,7 @@ async function initializeProducts() {
             originalPrice: 1200000,
             description: '프리미엄 슬라이딩',
             badge: 'NEW',
-            image: 'https://i.postimg.cc/BQrwzKxr/door3.jpg',
+            image: 'https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?w=600&h=450&fit=crop',
             order: 3
         },
         {
@@ -370,7 +362,7 @@ async function initializeProducts() {
             originalPrice: 1800000,
             description: '센서 + 자동개폐',
             badge: 'HOT',
-            image: 'https://i.postimg.cc/pTqMnPCy/doorlock.jpg',
+            image: 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=600&h=450&fit=crop',
             order: 4
         }
     ];
